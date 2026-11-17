@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FaceVision · Face Recognition System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%236366f1'/><circle cx='16' cy='14' r='6' fill='none' stroke='white' stroke-width='2.5'/><path d='M7 27c2-5 16-5 18 0' fill='none' stroke='white' stroke-width='2.5'/></svg>">
+</head>
+<body>
+<div class="app">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-logo"><i data-icon="scan"></i></div>
+      <div>
+        <div class="brand-name">FaceVision</div>
+        <div class="brand-sub">Detection &amp; Recognition</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="#dashboard" data-page="dashboard"><i data-icon="grid"></i>Dashboard</a>
+      <a href="#live" data-page="live"><i data-icon="video"></i>Live Camera</a>
+      <a href="#register" data-page="register"><i data-icon="userPlus"></i>Register Person</a>
+      <a href="#people" data-page="people"><i data-icon="users"></i>People</a>
+      <a href="#train" data-page="train"><i data-icon="cpu"></i>Train Model</a>
+      <a href="#attendance" data-page="attendance"><i data-icon="calendar"></i>Attendance</a>
+      <a href="#image" data-page="image"><i data-icon="image"></i>Image Test</a>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="model-mini" id="model-mini">
+        <span class="dot"></span><span class="txt">Checking model…</span>
+      </div>
+      <div class="credit">Haar Cascade + LBPH · OpenCV</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="icon-btn menu-btn" id="menu-btn" aria-label="Menu"><i data-icon="menu"></i></button>
+      <div class="titles">
+        <h1 id="page-title">Dashboard</h1>
+        <p id="page-sub"></p>
+      </div>
+      <div class="top-right">
+        <span class="pill" id="cam-pill"><span class="dot"></span><span>Camera off</span></span>
+        <button class="icon-btn" id="theme-btn" aria-label="Toggle theme"><i data-icon="moon"></i></button>
+      </div>
+    </header>
+
+    <!-- ============ DASHBOARD ============ -->
+    <section class="page" id="page-dashboard">
+      <div class="stats">
+        <div class="stat"><div class="stat-ico c1"><i data-icon="users"></i></div><div><div class="stat-val" id="st-people">–</div><div class="stat-lbl">Registered people</div></div></div>
+        <div class="stat"><div class="stat-ico c2"><i data-icon="layers"></i></div><div><div class="stat-val" id="st-images">–</div><div class="stat-lbl">Face samples</div></div></div>
+        <div class="stat"><div class="stat-ico c3"><i data-icon="cpu"></i></div><div><div class="stat-val sm" id="st-model">–</div><div class="stat-lbl" id="st-model-sub">Model</div></div></div>
+        <div class="stat"><div class="stat-ico c4"><i data-icon="check"></i></div><div><div class="stat-val" id="st-today">–</div><div class="stat-lbl">Present today</div></div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head"><h3>Quick start</h3><span class="muted small">3 steps to recognition</span></div>
+          <ol class="steps" id="steps">
+            <li data-step="1"><div class="step-num">1</div><div class="step-body"><b>Register people</b><span>Capture ~60 face samples per person from the webcam.</span></div><a class="btn sm" href="#register">Register</a></li>
+            <li data-step="2"><div class="step-num">2</div><div class="step-body"><b>Train the model</b><span>Build the LBPH recogniser from the dataset.</span></div><a class="btn sm" href="#train">Train</a></li>
+            <li data-step="3"><div class="step-num">3</div><div class="step-body"><b>Recognise live</b><span>Identify faces in real time and mark attendance.</span></div><a class="btn sm" href="#live" data-live-mode="recognize">Start</a></li>
+          </ol>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Attendance · last 7 days</h3><a class="link small" href="#attendance">View all →</a></div>
+          <div class="bars" id="week-bars"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head"><h3>Today's attendance</h3><span class="badge" id="today-count">0</span></div>
+          <div id="today-list" class="list"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Quick actions</h3></div>
+          <div class="actions">
+            <a class="action" href="#live" data-live-mode="detect"><i data-icon="scan"></i><b>Face detection</b><span>Viola–Jones Haar cascade</span></a>
+            <a class="action" href="#live" data-live-mode="recognize"><i data-icon="userCheck"></i><b>Recognition</b><span>LBPH + attendance</span></a>
+            <a class="action" href="#register"><i data-icon="userPlus"></i><b>Add a person</b><span>Collect a dataset</span></a>
+            <a class="action" href="#image"><i data-icon="image"></i><b>Test a photo</b><span>Upload a still image</span></a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>Recent screenshots</h3><span class="muted small" id="shots-count"></span></div>
+        <div class="shots" id="shots"></div>
+      </div>
+    </section>
+
+    <!-- ============ LIVE ============ -->
+    <section class="page" id="page-live">
+      <div class="live-grid">
+        <div class="card video-card">
+          <div class="video-wrap" id="live-wrap">
+            <img id="live-img" alt="">
+            <div class="video-empty">
+              <div class="empty-ico"><i data-icon="videoOff"></i></div>
+              <div class="empty-title">Camera is off</div>
+              <div class="muted small">Choose a mode and press Start.</div>
+            </div>
+            <div class="hud">
+              <span class="hud-chip live"><span class="rec"></span><span id="hud-mode">LIVE</span></span>
+              <span class="hud-chip mono" id="hud-fps">0 FPS</span>
+              <span class="hud-chip mono" id="hud-faces">0 faces</span>
+            </div>
+            <div class="loading" id="live-loading"><div class="spinner"></div><span>Opening camera…</span></div>
+          </div>
+          <div class="video-bar">
+            <button class="btn primary" id="live-start"><i data-icon="play"></i>Start</button>
+            <button class="btn danger" id="live-stop" hidden><i data-icon="stop"></i>Stop</button>
+            <button class="btn" id="live-shot" disabled><i data-icon="camera"></i>Screenshot</button>
+            <div class="spacer"></div>
+            <label class="select-wrap small">Camera
+              <select id="cam-index"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
+            </label>
+          </div>
+        </div>
+
+        <div class="side-col">
+          <div class="card">
+            <div class="card-head"><h3>Mode</h3></div>
+            <div class="seg" id="mode-seg">
+              <button data-mode="detect" class="active"><i data-icon="scan"></i>Detect</button>
+              <button data-mode="recognize"><i data-icon="userCheck"></i>Recognize</button>
+            </div>
+            <div class="opts">
+              <label class="switch-row" data-for="detect">
+                <span><b>Eye detection</b><small>Find eyes inside each face</small></span>
+                <input type="checkbox" id="opt-eyes"><span class="switch"></span>
+              </label>
+              <label class="switch-row" data-for="recognize">
+                <span><b>Mark attendance</b><small>Log each person once per day</small></span>
+                <input type="checkbox" id="opt-att" checked><span class="switch"></span>
+              </label>
+              <div class="range-row" data-for="recognize">
+                <div class="range-top"><b>Match threshold</b><span class="mono" id="thr-val">70</span></div>
+                <input type="range" id="opt-thr" min="30" max="120" step="1" value="70">
+                <div class="range-legend"><span>Stricter</span><span>More lenient</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card grow">
+            <div class="card-head"><h3>In frame</h3><span class="badge" id="live-count">0</span></div>
+            <div class="list" id="live-results"><div class="empty-line">No faces yet</div></div>
+          </div>
+
+          <div class="card" data-for="recognize" id="marks-card">
+            <div class="card-head"><h3>Marked present</h3><a class="link small" href="#attendance">Open →</a></div>
+            <div class="list" id="live-marks"><div class="empty-line">Nobody marked in this session</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ REGISTER ============ -->
+    <section class="page" id="page-register">
+      <div class="live-grid">
+        <div class="card video-card">
+          <div class="video-wrap" id="reg-wrap">
+            <img id="reg-img" alt="">
+            <div class="video-empty">
+              <div class="empty-ico"><i data-icon="userPlus"></i></div>
+              <div class="empty-title">Ready to capture</div>
+              <div class="muted small">Enter a name and start capturing.</div>
+            </div>
+            <div class="hud">
+              <span class="hud-chip live"><span class="rec"></span>CAPTURING</span>
+              <span class="hud-chip mono" id="reg-hud-count">0 / 60</span>
+            </div>
+            <div class="loading" id="reg-loading"><div class="spinner"></div><span>Opening camera…</span></div>
+          </div>
+          <div class="capture-status">
+            <div class="ring" id="reg-ring"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9" stroke-dasharray="0 100"/></svg><span id="reg-pct">0%</span></div>
+            <div>
+              <div class="cap-title" id="reg-title">Waiting to start</div>
+              <div class="muted small" id="reg-status">Fill in the form on the right.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="side-col">
+          <div class="card">
+            <div class="card-head"><h3>New person</h3></div>
+            <form id="reg-form" autocomplete="off">
+              <label class="field"><span>Full name</span>
+                <input id="reg-name" placeholder="e.g. Raghav_Sharma" maxlength="40" required>
+                <small class="muted">Letters, numbers, _ and -. Spaces become _. Using an existing name adds more samples.</small>
+              </label>
+              <div class="range-row">
+                <div class="range-top"><b>Samples</b><span class="mono" id="reg-samples-val">60</span></div>
+                <input type="range" id="reg-samples" min="20" max="200" step="10" value="60">
+              </div>
+              <div class="btn-row">
+                <button class="btn primary block" type="submit" id="reg-start"><i data-icon="camera"></i>Start capture</button>
+                <button class="btn danger block" type="button" id="reg-stop" hidden><i data-icon="stop"></i>Stop</button>
+              </div>
+            </form>
+          </div>
+          <div class="card done-card" id="reg-done" hidden>
+            <div class="done-ico"><i data-icon="check"></i></div>
+            <h3 id="reg-done-title">Captured!</h3>
+            <p class="muted small">Retrain the model so it learns this face.</p>
+            <div class="btn-row">
+              <a class="btn primary block" href="#train" data-autotrain="1"><i data-icon="cpu"></i>Train now</a>
+              <button class="btn block" id="reg-again">Register another</button>
+            </div>
+          </div>
+          <div class="card tips">
+            <div class="card-head"><h3>Tips for good accuracy</h3></div>
+            <ul>
+              <li><i data-icon="sun"></i>Face a light source; avoid strong back-light.</li>
+              <li><i data-icon="move"></i>Slowly turn your head left, right, up and down.</li>
+              <li><i data-icon="smile"></i>Change expression: neutral, smile, talk.</li>
+              <li><i data-icon="user"></i>Keep only one person in the frame.</li>
+              <li><i data-icon="glasses"></i>If you wear glasses, capture with and without.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PEOPLE ============ -->
+    <section class="page" id="page-people">
+      <div class="banner warn" id="stale-banner" hidden>
+        <i data-icon="alert"></i><div><b>The dataset changed since the last training.</b> Retrain so recognition uses the latest faces.</div>
+        <a class="btn sm" href="#train" data-autotrain="1">Retrain now</a>
+      </div>
+      <div class="toolbar">
+        <div class="search"><i data-icon="search"></i><input id="people-search" placeholder="Search people…"></div>
+        <div class="spacer"></div>
+        <a class="btn primary" href="#register"><i data-icon="userPlus"></i>Register person</a>
+      </div>
+      <div class="people-grid" id="people-grid"></div>
+    </section>
+
+    <!-- ============ TRAIN ============ -->
+    <section class="page" id="page-train">
+      <div class="grid-train">
+        <div class="card">
+          <div class="card-head"><h3>Train recogniser</h3></div>
+          <p class="muted">The LBPH (Local Binary Pattern Histogram) recogniser learns a texture histogram for every sample in <code>dataset/</code>. Training takes a few seconds.</p>
+          <div class="model-box" id="train-model-box"></div>
+          <label class="switch-row">
+            <span><b>Evaluate accuracy</b><small>Hold out 20% of samples to measure accuracy</small></span>
+            <input type="checkbox" id="train-eval" checked><span class="switch"></span>
+          </label>
+          <button class="btn primary block lg" id="train-btn"><i data-icon="cpu"></i>Train model</button>
+        </div>
+        <div class="card" id="train-result">
+          <div class="card-head"><h3>Results</h3><span class="muted small" id="train-time"></span></div>
+          <div class="train-empty" id="train-empty">
+            <div class="empty-ico"><i data-icon="chart"></i></div>
+            <div class="muted">Run training to see accuracy and per-person stats.</div>
+          </div>
+          <div id="train-out" hidden>
+            <div class="acc-row">
+              <div class="ring big" id="acc-ring"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9" stroke-dasharray="0 100"/></svg><span id="acc-val">–</span></div>
+              <div class="metrics" id="metrics"></div>
+            </div>
+            <table class="table"><thead><tr><th>ID</th><th>Person</th><th>Samples</th><th></th></tr></thead><tbody id="train-table"></tbody></table>
+            <details class="log"><summary>Training log</summary><pre id="train-log"></pre></details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ATTENDANCE ============ -->
+    <section class="page" id="page-attendance">
+      <div class="toolbar">
+        <label class="select-wrap">Date <select id="att-date"></select></label>
+        <button class="btn icon" id="att-refresh" title="Refresh"><i data-icon="refresh"></i></button>
+        <div class="spacer"></div>
+        <a class="btn" id="att-export"><i data-icon="download"></i>Export CSV</a>
+      </div>
+      <div class="stats three">
+        <div class="stat"><div class="stat-ico c4"><i data-icon="userCheck"></i></div><div><div class="stat-val" id="att-present">0</div><div class="stat-lbl">Present</div></div></div>
+        <div class="stat"><div class="stat-ico c5"><i data-icon="userX"></i></div><div><div class="stat-val" id="att-absent">0</div><div class="stat-lbl">Absent</div></div></div>
+        <div class="stat"><div class="stat-ico c2"><i data-icon="percent"></i></div><div><div class="stat-val" id="att-rate">0%</div><div class="stat-lbl">Attendance rate</div></div></div>
+      </div>
+      <div class="grid-att">
+        <div class="card">
+          <div class="card-head"><h3>Present</h3></div>
+          <table class="table"><thead><tr><th>#</th><th>Name</th><th>Time</th><th>Match</th><th></th></tr></thead><tbody id="att-table"></tbody></table>
+          <div class="empty-line" id="att-empty" hidden>No attendance recorded for this day.</div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Absent</h3></div>
+          <div class="chips" id="att-absent-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ IMAGE ============ -->
+    <section class="page" id="page-image">
+      <div class="live-grid">
+        <div class="card video-card">
+          <label class="drop" id="drop">
+            <input type="file" id="img-file" accept="image/*" hidden>
+            <img id="img-out" alt="" hidden>
+            <div class="drop-inner" id="drop-inner">
+              <div class="empty-ico"><i data-icon="upload"></i></div>
+              <div class="empty-title">Drop an image here</div>
+              <div class="muted small">or click to browse · JPG / PNG</div>
+            </div>
+            <div class="loading" id="img-loading"><div class="spinner"></div><span>Analysing…</span></div>
+          </label>
+        </div>
+        <div class="side-col">
+          <div class="card">
+            <div class="card-head"><h3>Analysis</h3></div>
+            <div class="seg" id="img-seg">
+              <button data-mode="detect"><i data-icon="scan"></i>Detect</button>
+              <button data-mode="recognize" class="active"><i data-icon="userCheck"></i>Recognize</button>
+            </div>
+            <div class="range-row" style="margin-top:14px">
+              <div class="range-top"><b>Match threshold</b><span class="mono" id="img-thr-val">70</span></div>
+              <input type="range" id="img-thr" min="30" max="120" step="1" value="70">
+            </div>
+            <button class="btn block" id="img-pick"><i data-icon="upload"></i>Choose image</button>
+          </div>
+          <div class="card grow">
+            <div class="card-head"><h3>Faces found</h3><span class="badge" id="img-count">0</span></div>
+            <div class="list" id="img-results"><div class="empty-line">Upload an image to begin</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<div class="modal" id="modal" hidden>
+  <div class="modal-box">
+    <h3 id="modal-title">Are you sure?</h3>
+    <p class="muted" id="modal-text"></p>
+    <div class="btn-row end">
+      <button class="btn" id="modal-cancel">Cancel</button>
+      <button class="btn danger" id="modal-ok">Delete</button>
+    </div>
+  </div>
+</div>
+<div class="lightbox" id="lightbox" hidden><img alt=""></div>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
